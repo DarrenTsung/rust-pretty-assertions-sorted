@@ -4,7 +4,7 @@ This crate wraps the [pretty_assertions](https://raw.githubusercontent.com/colin
 in a test failure via a colorful diff.
 
 However, the diff is based on the Debug output of the objects. For objects that
-have non-deterministic output, eg. two HashMap with the same contents, the diff
+have non-deterministic output, eg. two HashMaps with close to the same contents, the diff
 will be polluted and obscured with with false-positive differences like here:
 
 ![standard assertion](https://raw.githubusercontent.com/DarrenTsung/rust-pretty-assertions-sorted/fe860f070bdfb29a399a32ff9d3b98ca8d958326/images/non_deterministic.png)

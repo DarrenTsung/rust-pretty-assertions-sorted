@@ -68,7 +68,7 @@ macro_rules! assert_eq_sorted {
                        \n",
                        $maybe_semicolon,
                        format_args!($($arg)*),
-                       $crate::Comparison::new(&SortedDebug(left_val), &SortedDebug(right_val))
+                       $crate::Comparison::new(&$crate::SortedDebug::new(left_val), &$crate::SortedDebug::new(right_val))
                     )
                 }
             }
@@ -86,6 +86,12 @@ macro_rules! assert_eq_sorted {
 /// * Blocklist for field names that shouldn't be sorted
 /// * Sorting more than just maps (struct fields, lists, etc.)
 pub struct SortedDebug<T>(T);
+
+impl<T> SortedDebug<T> {
+    pub fn new(v: T) -> Self {
+        Self(v)
+    }
+}
 
 impl<T: fmt::Debug> fmt::Debug for SortedDebug<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

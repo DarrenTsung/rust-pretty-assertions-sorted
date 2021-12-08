@@ -1,0 +1,25 @@
+[package]
+authors = [
+  "Darren Tsung <darren.tsung@gmail.com>",
+]
+edition = "2021"
+name = "pretty_assertions_sorted"
+version = "1.0.0"
+
+description = "Wrapper around the `rust-pretty-assertions` crate that allows for the ability to sort the Debug output."
+documentation = "https://docs.rs/pretty_assertions_sorted"
+repository = "https://github.com/DarrenTsung/rust-pretty-assertions-sorted"
+
+categories = ["development-tools"]
+keywords = ["assert", "diff", "pretty", "color", "sort"]
+license = "MIT/Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+# Fork, can be switched to use upstream after https://github.com/derekdreery/debug_parser/pull/4
+# is merged in.
+darrentsung_debug_parser = "0.1"
+pretty_assertions = "1.0"
+
+[dev-dependencies]
+indoc = "1.0"

@@ -190,11 +190,13 @@ mod tests {
     #[test]
     fn sorts_object_with_hashmap() {
         #[derive(Debug)]
+        #[allow(unused)]
         struct Foo {
             bar: Bar,
         }
 
         #[derive(Debug)]
+        #[allow(unused)]
         struct Bar {
             count: HashMap<&'static str, Zed>,
             value: usize,
@@ -234,12 +236,14 @@ mod tests {
     #[test]
     fn hashmap_with_object_values() {
         #[derive(Debug)]
+        #[allow(unused)]
         struct Foo {
             value: f32,
             bar: Vec<Bar>,
         }
 
         #[derive(Debug)]
+        #[allow(unused)]
         struct Bar {
             elo: i32,
         }
@@ -337,6 +341,28 @@ mod tests {
                             },
                         ],
                     }: \"foo\",
+                }"
+            );
+            assert_eq!(sorted_debug(item), expected);
+        }
+    }
+
+    #[test]
+    fn hashmap_with_chrono_naivedate() {
+        for _ in 0..TEST_RERUNS_FOR_DETERMINISM {
+            let item = {
+                let mut map = HashMap::new();
+                map.insert(chrono::NaiveDate::from_ymd(2000, 2, 14), "foo");
+                map.insert(chrono::NaiveDate::from_ymd(2001, 4, 2), "foo");
+                map
+            };
+
+            dbg!(&item);
+
+            let expected = indoc!(
+                "{
+                    2000-02-14: \"foo\",
+                    2001-04-02: \"foo\",
                 }"
             );
             assert_eq!(sorted_debug(item), expected);

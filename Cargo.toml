@@ -4,7 +4,7 @@ authors = [
 ]
 edition = "2018"
 name = "pretty_assertions_sorted"
-version = "1.2.0"
+version = "1.2.1"
 
 description = "Wrapper around the `rust-pretty-assertions` crate that allows for the ability to sort the Debug output."
 documentation = "https://docs.rs/pretty_assertions_sorted"
@@ -22,3 +22,4 @@ pretty_assertions = "1.0"
 [dev-dependencies]
 chrono = "0.4.19"
 indoc = "1.0"
+serde_json = "1.0.85"

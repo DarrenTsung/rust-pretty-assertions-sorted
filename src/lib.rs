@@ -62,13 +62,19 @@ macro_rules! assert_eq_sorted {
         match (&($left), &($right)) {
             (left_val, right_val) => {
                 if !(*left_val == *right_val) {
+                    // We create the comparison string outside the panic! call
+                    // because creating the comparison string could panic itself.
+                    let comparison_string = $crate::Comparison::new(
+                        &$crate::SortedDebug::new(left_val),
+                        &$crate::SortedDebug::new(right_val)
+                    ).to_string();
                     ::core::panic!("assertion failed: `(left == right)`{}{}\
                        \n\
                        \n{}\
                        \n",
                        $maybe_semicolon,
                        format_args!($($arg)*),
-                       $crate::Comparison::new(&$crate::SortedDebug::new(left_val), &$crate::SortedDebug::new(right_val))
+                       comparison_string,
                     )
                 }
             }
@@ -76,11 +82,14 @@ macro_rules! assert_eq_sorted {
     });
 }
 
-/// New-type wrapper around an object that sorts the fmt::Debug output
-/// when displayed for deterministic output.
+/// New-type wrapper around an object that sorts the fmt::Debug output when displayed for
+/// deterministic output.
 ///
-/// This works through parsing the output and sorting the `debug_map()`
-/// type.
+/// This works through parsing the output and sorting the `debug_map()` type.
+///
+/// DISCLAIMER: This Debug implementation will panic if the inner value's Debug
+/// representation can't be sorted. This is used to notify users when used in tests. An
+/// alternative solution of falling back to non-sorted could be implemented.
 ///
 /// Potential use-cases that aren't implemented yet:
 /// * Blocklist for field names that shouldn't be sorted
@@ -98,7 +107,7 @@ impl<T: fmt::Debug> fmt::Debug for SortedDebug<T> {
         let mut value = match parse(&format!("{:?}", self.0)) {
             Ok(value) => value,
             Err(err) => {
-                ::core::panic!("Failed to parse Debug output, err: {}", err)
+                ::core::panic!("Failed to parse Debug output for sorting (please use `assert_eq!` instead and/or file an issue for your use-case)!\nError: {}", err)
             }
         };
 
@@ -367,5 +376,19 @@ mod tests {
             );
             assert_eq!(sorted_debug(item), expected);
         }
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Failed to parse Debug output for sorting (please use `assert_eq!` instead and/or file an issue for your use-case)!
+Error: Failed to consume all of string!
+Value:
+Object
+
+Rest:
+\" {\\\"a\\\": Number(0)}\""
+    )]
+    fn panics_when_expression_cant_be_sorted() {
+        assert_eq_sorted!(serde_json::json!({"a":0}), "2");
     }
 }

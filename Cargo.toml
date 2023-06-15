@@ -4,7 +4,7 @@ authors = [
 ]
 edition = "2018"
 name = "pretty_assertions_sorted"
-version = "1.2.1"
+version = "1.2.3"
 
 description = "Wrapper around the `rust-pretty-assertions` crate that allows for the ability to sort the Debug output."
 documentation = "https://docs.rs/pretty_assertions_sorted"
@@ -16,7 +16,7 @@ license = "MIT/Apache-2.0"
 readme = "README.md"
 
 [dependencies]
-darrentsung_debug_parser = "0.3.0"
+darrentsung_debug_parser = "0.3.1"
 pretty_assertions = "1.0"
 
 [dev-dependencies]

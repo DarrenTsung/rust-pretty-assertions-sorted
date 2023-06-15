@@ -34,7 +34,7 @@
 //! This way the compile time of `cargo build` won't be affected!
 use std::fmt;
 
-use darrentsung_debug_parser::{parse, Value};
+use darrentsung_debug_parser::*;
 pub use pretty_assertions::{assert_eq, assert_ne, Comparison};
 
 /// This is a wrapper with similar functionality to [`assert_eq`], however, the
@@ -113,15 +113,25 @@ impl<T: fmt::Debug> fmt::Debug for SortedDebug<T> {
 
         sort_maps(&mut value);
 
-        fmt::Debug::fmt(&value, f)
+        // Replace one-line non-exhaustive objects with empty brackets separated by
+        // newlines. This changes output like: "Foo { .. }" with "Foo {\n}". "Foo {\n}" is
+        // more desirable because it diffs better against some multi-line output of "Foo {
+        // value: 10.0 }" (imagine the newlines please).
+        let formatted_output = format!("{:#?}", value).replace("{ .. }", "{\n}");
+        fmt::Display::fmt(&formatted_output, f)
     }
 }
 
 fn sort_maps(v: &mut Value) {
     match v {
         Value::Struct(s) => {
-            for ident_value in &mut s.values {
-                sort_maps(&mut ident_value.value);
+            for ident_value_or_non_exhaustive in &mut s.values {
+                match ident_value_or_non_exhaustive {
+                    OrNonExhaustive::Value(ident_value) => {
+                        sort_maps(&mut ident_value.value);
+                    }
+                    OrNonExhaustive::NonExhaustive => (),
+                }
             }
         }
         Value::Set(s) => {
@@ -190,6 +200,50 @@ mod tests {
                     1: true,
                     2: true,
                     20: true,
+                }"
+            );
+            assert_eq!(sorted_debug(item), expected);
+        }
+    }
+
+    #[test]
+    fn sorts_hashmaps_with_non_exhaustive_object_values() {
+        #[allow(unused)]
+        struct Foo {
+            value: f32,
+        }
+
+        impl fmt::Debug for Foo {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct("Foo")
+                    .field("value", &self.value)
+                    .finish_non_exhaustive()
+            }
+        }
+
+        for _ in 0..TEST_RERUNS_FOR_DETERMINISM {
+            let item = {
+                let mut map = HashMap::new();
+                map.insert(1, Foo { value: 10.1 });
+                map.insert(32, Foo { value: 2.0 });
+                map.insert(2, Foo { value: -1.5 });
+                map
+            };
+
+            let expected = indoc!(
+                "{
+                    1: Foo {
+                        value: 10.1,
+                        ..
+                    },
+                    2: Foo {
+                        value: -1.5,
+                        ..
+                    },
+                    32: Foo {
+                        value: 2.0,
+                        ..
+                    },
                 }"
             );
             assert_eq!(sorted_debug(item), expected);
@@ -390,5 +444,54 @@ Rest:
     )]
     fn panics_when_expression_cant_be_sorted() {
         assert_eq_sorted!(serde_json::json!({"a":0}), "2");
+    }
+
+    #[derive(PartialEq)]
+    #[allow(unused)]
+    struct FooWithOptionalField {
+        value: Option<f32>,
+    }
+
+    impl fmt::Debug for FooWithOptionalField {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let mut foo = f.debug_struct("FooWithOptionalField");
+            if let Some(value) = &self.value {
+                foo.field("value", value);
+                foo.finish()
+            } else {
+                foo.finish_non_exhaustive()
+            }
+        }
+    }
+
+    /// Test that the value field is displayed as missing (colored red) for optional fields
+    /// on non-exhaustive Debug implementations.
+    #[test]
+    #[should_panic(expected = "FooWithOptionalField {\n\u{1b}[31m<    value: 2.0,\u{1b}[0m\n }")]
+    fn ui_looks_right_for_non_exhaustive_optional_fields() {
+        assert_eq_sorted!(
+            FooWithOptionalField { value: Some(2.0) },
+            FooWithOptionalField { value: None }
+        );
+    }
+
+    #[test]
+    fn outputs_nice_output_for_non_exhaustive_objects_with_optional_fields() {
+        assert_eq!(
+            sorted_debug(FooWithOptionalField { value: Some(10.0) }),
+            indoc!(
+                "FooWithOptionalField {
+                    value: 10.0,
+                }"
+            )
+        );
+
+        assert_eq!(
+            sorted_debug(FooWithOptionalField { value: None }),
+            indoc!(
+                "FooWithOptionalField {
+                }"
+            )
+        );
     }
 }
